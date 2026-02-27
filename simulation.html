@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart IoT Bioreactor – Live Simulation</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --bg: #020818;
+            --panel: #050f2e;
+            --card: #071235;
+            --accent: #00d4ff;
+            --green: #00ff88;
+            --red: #ff4444;
+            --orange: #ff9900;
+            --purple: #a855f7;
+            --border: rgba(0, 212, 255, 0.2);
+            --glow: 0 0 20px rgba(0, 212, 255, 0.4);
+        }
+
+        body {
+            background: var(--bg);
+            color: #e0f0ff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, #020818 0%, #071235 50%, #020818 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+
+        header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.4rem;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-shadow: var(--glow)
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--green);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: .8rem;
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 1.2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7)
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(0, 255, 136, 0)
+            }
+        }
+
+        /* NAV TABS */
+        nav {
+            display: flex;
+            gap: 4px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            overflow-x: auto
+        }
+
+        .tab {
+            padding: 12px 22px;
+            cursor: pointer;
+            font-size: .85rem;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            transition: .3s;
+            color: #6a9ab0;
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent)
+        }
+
+        .tab:hover {
+            color: #fff
+        }
+
+        /* MAIN GRID */
+        main {
+            padding: 24px;
+            display: grid;
+            gap: 20px
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px
+        }
+
+        @media(max-width:900px) {
+
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+
+        .card-title {
+            font-family: 'Orbitron', monospace;
+            font-size: .7rem;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 14px;
+            text-transform: uppercase
+        }
+
+        /* SENSOR CARDS */
+        .sensor-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform .3s, box-shadow .3s;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--glow)
+        }
+
+        .sensor-card .icon {
+            font-size: 2rem;
+            margin-bottom: 8px
+        }
+
+        .sensor-card .label {
+            font-size: .7rem;
+            color: #6a9ab0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px
+        }
+
+        .sensor-card .value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 4px
+        }
+
+        .sensor-card .unit {
+            font-size: .75rem;
+            color: #6a9ab0
+        }
+
+        .sensor-card .trend {
+            font-size: .7rem;
+            margin-top: 6px
+        }
+
+        .bar-bg {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            height: 4px;
+            margin-top: 10px;
+            overflow: hidden
+        }
+
+        .bar-fill {
+            height: 4px;
+            border-radius: 4px;
+            transition: width 1s
+        }
+
+        /* ===== PROCESS FLOW ===== */
+        #process-view {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr) 0.3fr;
+            gap: 0;
+            align-items: center;
+            padding: 10px 0
+        }
+
+        .stage {
+            background: rgba(0, 30, 70, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 8px;
+            text-align: center;
+            position: relative;
+            margin: 4px;
+            transition: .3s;
+        }
+
+        .stage.active-stage {
+            border-color: var(--accent);
+            box-shadow: 0 0 18px rgba(0, 212, 255, 0.3)
+        }
+
+        .stage-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #000;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: .9rem;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .stage-label {
+            font-size: .65rem;
+            color: #a0c8e0;
+            font-weight: 600;
+            line-height: 1.3
+        }
+
+        .stage-icon {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+            display: block
+        }
+
+        .flow-arrow {
+            font-size: 1.4rem;
+            color: var(--accent);
+            text-align: center;
+            animation: arrowPulse 1.5s infinite
+        }
+
+        @keyframes arrowPulse {
+
+            0%,
+            100% {
+                opacity: .3;
+                transform: translateX(-3px)
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateX(3px)
+            }
+        }
+
+        /* LIQUID ANIMATION */
+        .liquid-container {
+            position: relative;
+            width: 60px;
+            height: 80px;
+            margin: 0 auto 8px;
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, .4)
+        }
+
+        .liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 212, 255, .6), rgba(0, 100, 200, .3));
+            transition: height 1.5s;
+            animation: liquidWave 3s infinite
+        }
+
+        @keyframes liquidWave {
+
+            0%,
+            100% {
+                clip-path: polygon(0 10%, 25% 0, 50% 8%, 75% 0, 100% 10%, 100% 100%, 0 100%)
+            }
+
+            50% {
+                clip-path: polygon(0 0, 25% 8%, 50% 0, 75% 8%, 100% 0, 100% 100%, 0 100%)
+            }
+        }
+
+        .bubbles span {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(0, 212, 255, .7);
+            animation: rise 2s infinite;
+        }
+
+        @keyframes rise {
+            from {
+                bottom: 0;
+                opacity: 1;
+                transform: translateX(0)
+            }
+
+            to {
+                bottom: 80px;
+                opacity: 0;
+                transform: translateX(calc(var(--dx, 0)*1px))
+            }
+        }
+
+        /* GAUGE */
+        .gauge-wrap {
+            position: relative;
+            width: 120px;
+            height: 70px;
+            margin: 0 auto 8px;
+            overflow: hidden
+        }
+
+        .gauge-svg {
+            width: 120px;
+            height: 120px
+        }
+
+        /* ALERTS */
+        .alert-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: .8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: rgba(255, 153, 0, 0.1);
+            border: 1px solid var(--orange);
+            color: var(--orange);
+            animation: slideIn .4s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1
+            }
+        }
+
+        .alert-banner.ok {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--green);
+            color: var(--green)
+        }
+
+        /* CONTROL PANEL */
+        .ctrl-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 12px
+        }
+
+        .ctrl-label {
+            font-size: .8rem;
+            color: #a0c8e0;
+            min-width: 90px
+        }
+
+        .ctrl-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(0, 212, 255, .2);
+            outline: none;
+            cursor: pointer
+        }
+
+        .ctrl-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent)
+        }
+
+        .ctrl-val {
+            font-family: 'Orbitron', monospace;
+            font-size: .8rem;
+            color: var(--accent);
+            min-width: 50px;
+            text-align: right
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, .1);
+            border-radius: 12px;
+            transition: .3s
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: #888;
+            border-radius: 50%;
+            transition: .3s
+        }
+
+        .toggle input:checked+.toggle-slider {
+            background: rgba(0, 255, 136, .3)
+        }
+
+        .toggle input:checked+.toggle-slider:before {
+            transform: translateX(20px);
+            background: var(--green)
+        }
+
+        .actuator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(0, 0, 0, .2);
+            margin-bottom: 8px;
+        }
+
+        .actuator-name {
+            font-size: .8rem;
+            font-weight: 600
+        }
+
+        .act-indicator {
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: .7rem;
+            font-weight: 700;
+            transition: .5s;
+        }
+
+        .act-on {
+            background: rgba(0, 255, 136, .2);
+            color: var(--green);
+            border: 1px solid var(--green)
+        }
+
+        .act-off {
+            background: rgba(255, 68, 68, .1);
+            color: var(--red);
+            border: 1px solid var(--red)
+        }
+
+        /* DEGRADATION */
+        .deg-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px
+        }
+
+        .deg-label {
+            font-size: .8rem;
+            color: #a0c8e0;
+            width: 100px
+        }
+
+        .deg-track {
+            flex: 1;
+            height: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .05);
+            overflow: hidden;
+            position: relative
+        }
+
+        .deg-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 2s
+        }
+
+        .deg-pct {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: .7rem;
+            font-weight: 700;
+            color: #fff
+        }
+
+        /* CHART */
+        canvas {
+            max-height: 180px !important
+        }
+
+        /* EFFICIENCY DIAL */
+        .dial {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .dial svg {
+            width: 150px;
+            height: 150px
+        }
+
+        .dial-val {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .dial-val span {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            color: var(--green);
+            display: block
+        }
+
+        .dial-val small {
+            font-size: .65rem;
+            color: #6a9ab0
+        }
+
+        /* hidden sections */
+        .tab-section {
+            display: none
+        }
+
+        .tab-section.visible {
+            display: block
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: .75rem;
+            color: #2a5070;
+            border-top: 1px solid var(--border);
+            margin-top: 16px;
+        }
+
+        /* PARTICLES */
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0
+        }
+
+        main,
+        header,
+        nav {
+            position: relative;
+            z-index: 1
+        }
+
+        /* GLOW COLORS */
+        .c-blue {
+            color: var(--accent)
+        }
+
+        .c-green {
+            color: var(--green)
+        }
+
+        .c-orange {
+            color: var(--orange)
+        }
+
+        .c-purple {
+            color: var(--purple)
+        }
+
+        .c-red {
+            color: var(--red)
+        }
+
+        .bg-blue {
+            background: rgba(0, 212, 255, .1)
+        }
+
+        .bg-green {
+            background: rgba(0, 255, 136, .1)
+        }
+
+        .border-blue {
+            border-color: rgba(0, 212, 255, .5)
+        }
+
+        .border-green {
+            border-color: rgba(0, 255, 136, .5)
+        }
+
+        .border-orange {
+            border-color: rgba(255, 153, 0, .5)
+        }
+
+        .border-purple {
+            border-color: rgba(168, 85, 247, .5)
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="particles"></canvas>
+
+    <header>
+        <div>
+            <h1>⚗ BIOREACH IoT BIOREACTOR</h1>
+            <div style="font-size:.7rem;color:#3a8080;margin-top:2px">Smart Enzymatic Degradation System · ESP32
+                Controlled</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div class="status-badge"><span class="status-dot"></span>SYSTEM ONLINE</div>
+            <div style="font-size:.75rem;color:#3a8080" id="clock"></div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+        <div class="tab" onclick="showTab('process')">⚙ Process Flow</div>
+        <div class="tab" onclick="showTab('control')">🎛 Control Panel</div>
+        <div class="tab" onclick="showTab('degradation')">🧪 Degradation</div>
+        <div class="tab" onclick="showTab('analytics')">📈 Analytics</div>
+    </nav>
+
+    <main>
+
+        <!-- ===== DASHBOARD ===== -->
+        <section class="tab-section visible" id="tab-dashboard">
+
+            <div id="alert-zone" style="margin-bottom:4px"></div>
+
+            <div class="grid-4">
+                <!-- pH -->
+                <div class="sensor-card border-blue">
+                    <div class="icon">🔬</div>
+                    <div class="label">pH Level</div>
+                    <div class="value c-blue" id="ph-val">7.00</div>
+                    <div class="unit">pH units</div>
+                    <div class="trend" id="ph-trend">● Optimal range</div>
+                    <div class="bar-bg">
+                        <div class="bar-fill bg-blue border-blue" id="ph-bar"
+                            style="width:70%;background:var(--accent)"></div>
+                    </div>
+                </div>
+                <!-- Temp -->
+                <div class="sensor-card border-orange">
+                    <div class="icon">🌡</div>
+                    <div class="label">Temperature</div>
+                    <div class="value c-orange" id="temp-val">37.0</div>
+                    <div class="unit">°C</div>
+                    <div class="trend" id="temp-trend">● Heater ON</div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="temp-bar" style="width:74%;background:var(--orange)"></div>
+                    </div>
+                </div>
+                <!-- DO -->
+                <div class="sensor-card border-green">
+                    <div class="icon">💧</div>
+                    <div class="label">Dissolved O₂</div>
+                    <div class="value c-green" id="do-val">6.5</div>
+                    <div class="unit">mg/L</div>
+                    <div class="trend" id="do-trend">● Aerator active</div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="do-bar" style="width:65%;background:var(--green)"></div>
+                    </div>
+                </div>
+                <!-- Turbidity -->
+                <div class="sensor-card border-purple">
+                    <div class="icon">🌊</div>
+                    <div class="label">Turbidity</div>
+                    <div class="value c-purple" id="turb-val">280</div>
+                    <div class="unit">NTU</div>
+                    <div class="trend" id="turb-trend">● Degrading…</div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="turb-bar" style="width:56%;background:var(--purple)"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:20px">
+                <!-- Live Chart -->
+                <div class="card">
+                    <div class="card-title">⚡ Real-Time Parameter Monitor</div>
+                    <canvas id="liveChart"></canvas>
+                </div>
+                <!-- Actuator Status -->
+                <div class="card">
+                    <div class="card-title">🔧 Actuator Status</div>
+                    <div class="actuator"><span class="actuator-name">🌡 Heating Element</span><span
+                            class="act-indicator act-on" id="act-heat">ON</span></div>
+                    <div class="actuator"><span class="actuator-name">💨 Air Pump / Aerator</span><span
+                            class="act-indicator act-on" id="act-air">ON</span></div>
+                    <div class="actuator"><span class="actuator-name">🔄 Agitator Motor</span><span
+                            class="act-indicator act-on" id="act-agit">ON</span></div>
+                    <div class="actuator"><span class="actuator-name">🧪 Acid Dosing Pump</span><span
+                            class="act-indicator act-off" id="act-acid">OFF</span></div>
+                    <div class="actuator"><span class="actuator-name">🧪 Base Dosing Pump</span><span
+                            class="act-indicator act-off" id="act-base">OFF</span></div>
+                    <div class="actuator"><span class="actuator-name">🚰 Feed Pump</span><span
+                            class="act-indicator act-on" id="act-feed">ON</span></div>
+                    <div style="margin-top:12px;font-size:.7rem;color:#3a8080;text-align:right">ESP32 loop: <span
+                            id="loop-ms" style="color:var(--green);font-family:'Orbitron',monospace">18</span> ms</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== PROCESS FLOW ===== -->
+        <section class="tab-section" id="tab-process">
+            <div class="card">
+                <div class="card-title">🏭 5-Stage Bioreactor Process Flow — Live Machinery View</div>
+
+                <!-- Stage labels row -->
+                <div
+                    style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;text-align:center">
+                    <div><span
+                            style="background:var(--accent);color:#000;font-family:'Orbitron',monospace;font-weight:900;font-size:.75rem;padding:3px 10px;border-radius:10px">①</span>
+                        <div style="font-size:.7rem;color:#a0c8e0;margin-top:4px;font-weight:600">
+                            Stirred-Tank<br>Bioreactor</div>
+                        <div style="font-size:.65rem;color:var(--accent)" id="s1-status">pH 7.0 · 37°C</div>
+                    </div>
+                    <div><span
+                            style="background:var(--orange);color:#000;font-family:'Orbitron',monospace;font-weight:900;font-size:.75rem;padding:3px 10px;border-radius:10px">②</span>
+                        <div style="font-size:.7rem;color:#a0c8e0;margin-top:4px;font-weight:600">
+                            High-Pressure<br>Homogenizer</div>
+                        <div style="font-size:.65rem;color:var(--orange)">850 bar</div>
+                    </div>
+                    <div><span
+                            style="background:var(--green);color:#000;font-family:'Orbitron',monospace;font-weight:900;font-size:.75rem;padding:3px 10px;border-radius:10px">③</span>
+                        <div style="font-size:.7rem;color:#a0c8e0;margin-top:4px;font-weight:600">Membrane<br>Filtration
+                        </div>
+                        <div style="font-size:.65rem;color:var(--green)">2.3 L/h</div>
+                    </div>
+                    <div><span
+                            style="background:var(--purple);color:#fff;font-family:'Orbitron',monospace;font-weight:900;font-size:.75rem;padding:3px 10px;border-radius:10px">④</span>
+                        <div style="font-size:.7rem;color:#a0c8e0;margin-top:4px;font-weight:600">
+                            Chromatography<br>Column</div>
+                        <div style="font-size:.65rem;color:var(--purple)">Separation</div>
+                    </div>
+                    <div><span
+                            style="background:var(--green);color:#000;font-family:'Orbitron',monospace;font-weight:900;font-size:.75rem;padding:3px 10px;border-radius:10px">⑤</span>
+                        <div style="font-size:.7rem;color:#a0c8e0;margin-top:4px;font-weight:600">Formulation
+                            &<br>Aseptic Filling</div>
+                        <div style="font-size:.65rem;color:var(--green)" id="output-purity">Purity: 96%</div>
+                    </div>
+                </div>
+
+                <!-- SVG Machinery Diagram -->
+                <div style="width:100%;overflow-x:auto">
+                    <svg id="machinery-svg" viewBox="0 0 1100 340" xmlns="http://www.w3.org/2000/svg"
+                        style="width:100%;max-height:340px;display:block">
+                        <defs>
+                            <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#1a3a5c" />
+                                <stop offset="40%" stop-color="#2a6080" />
+                                <stop offset="60%" stop-color="#3a80a0" />
+                                <stop offset="100%" stop-color="#1a3a5c" />
+                            </linearGradient>
+                            <linearGradient id="steelV" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#2a6080" />
+                                <stop offset="50%" stop-color="#3a90b0" />
+                                <stop offset="100%" stop-color="#1a4060" />
+                            </linearGradient>
+                            <linearGradient id="liqGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="rgba(0,212,255,0.3)" />
+                                <stop offset="100%" stop-color="rgba(0,100,200,0.6)" />
+                            </linearGradient>
+                            <linearGradient id="liqOr" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="rgba(255,153,0,0.2)" />
+                                <stop offset="100%" stop-color="rgba(200,80,0,0.5)" />
+                            </linearGradient>
+                            <linearGradient id="liqGr" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="rgba(0,255,136,0.2)" />
+                                <stop offset="100%" stop-color="rgba(0,180,80,0.5)" />
+                            </linearGradient>
+                            <linearGradient id="liqPu" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="rgba(168,85,247,0.2)" />
+                                <stop offset="100%" stop-color="rgba(100,30,200,0.6)" />
+                            </linearGradient>
+                            <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                                <path d="M0,0 L6,3 L0,6 Z" fill="#00d4ff" opacity="0.8" />
+                            </marker>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feMerge>
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                            <style>
+                                .pipe {
+                                    stroke: #00d4ff;
+                                    stroke-width: 4;
+                                    fill: none;
+                                    stroke-dasharray: 12 6;
+                                    animation: flowPipe 1.2s linear infinite
+                                }
+
+                                .pipe-orange {
+                                    stroke: #ff9900;
+                                    stroke-width: 4;
+                                    fill: none;
+                                    stroke-dasharray: 12 6;
+                                    animation: flowPipe 1.2s linear infinite
+                                }
+
+                                .pipe-green {
+                                    stroke: #00ff88;
+                                    stroke-width: 4;
+                                    fill: none;
+                                    stroke-dasharray: 12 6;
+                                    animation: flowPipe 1.2s linear infinite
+                                }
+
+                                .pipe-purple {
+                                    stroke: #a855f7;
+                                    stroke-width: 4;
+                                    fill: none;
+                                    stroke-dasharray: 12 6;
+                                    animation: flowPipe 1.2s linear infinite
+                                }
+
+                                @keyframes flowPipe {
+                                    to {
+                                        stroke-dashoffset: -18
+                                    }
+                                }
+
+                                .agitator {
+                                    transform-origin: 110px 160px;
+                                    animation: spin 2s linear infinite
+                                }
+
+                                @keyframes spin {
+                                    to {
+                                        transform: rotate(360deg)
+                                    }
+                                }
+
+                                .bubble-svg {
+                                    animation: risesvg 2s ease-in infinite
+                                }
+
+                                @keyframes risesvg {
+                                    0% {
+                                        opacity: 1;
+                                        transform: translateY(0)
+                                    }
+
+                                    100% {
+                                        opacity: 0;
+                                        transform: translateY(-40px)
+                                    }
+                                }
+
+                                .stage-glow {
+                                    filter: url(#glow);
+                                    opacity: 0;
+                                    transition: opacity .5s
+                                }
+
+                                .stage-glow.active {
+                                    opacity: 1
+                                }
+
+                                .piston {
+                                    animation: pistonMove 1s ease-in-out infinite alternate
+                                }
+
+                                @keyframes pistonMove {
+                                    from {
+                                        transform: translateY(0)
+                                    }
+
+                                    to {
+                                        transform: translateY(10px)
+                                    }
+                                }
+                            </style>
+                        </defs>
+
+                        <!-- ═══════════════ STAGE 1: STIRRED-TANK BIOREACTOR ═══════════════ -->
+                        <g id="svg-s1">
+                            <!-- Motor on top -->
+                            <rect x="95" y="15" width="30" height="22" rx="4" fill="url(#steel)" stroke="#00d4ff"
+                                stroke-width="1.5" />
+                            <line x1="110" y1="37" x2="110" y2="52" stroke="#4a8080" stroke-width="4" />
+                            <!-- Coil/jacket -->
+                            <rect x="75" y="52" width="70" height="170" rx="6" fill="url(#steelV)" stroke="#2a6090"
+                                stroke-width="2" />
+                            <!-- coil lines -->
+                            <line x1="75" y1="80" x2="145" y2="80" stroke="#1a4060" stroke-width="2"
+                                stroke-dasharray="4,3" />
+                            <line x1="75" y1="100" x2="145" y2="100" stroke="#1a4060" stroke-width="2"
+                                stroke-dasharray="4,3" />
+                            <line x1="75" y1="120" x2="145" y2="120" stroke="#1a4060" stroke-width="2"
+                                stroke-dasharray="4,3" />
+                            <line x1="75" y1="140" x2="145" y2="140" stroke="#1a4060" stroke-width="2"
+                                stroke-dasharray="4,3" />
+                            <!-- liquid inside -->
+                            <rect x="80" y="120" width="60" height="98" rx="4" fill="url(#liqGrad)" id="liq1-svg" />
+                            <!-- bubbles -->
+                            <circle cx="95" cy="185" r="3" fill="rgba(0,212,255,0.6)" class="bubble-svg"
+                                style="animation-delay:0s" />
+                            <circle cx="110" cy="175" r="2" fill="rgba(0,212,255,0.5)" class="bubble-svg"
+                                style="animation-delay:.5s" />
+                            <circle cx="125" cy="190" r="2.5" fill="rgba(0,212,255,0.4)" class="bubble-svg"
+                                style="animation-delay:1s" />
+                            <!-- agitator shaft -->
+                            <line x1="110" y1="52" x2="110" y2="200" stroke="#4a9090" stroke-width="2" />
+                            <!-- agitator blades (rotating group) -->
+                            <g class="agitator">
+                                <line x1="85" y1="160" x2="135" y2="160" stroke="#00d4ff" stroke-width="3"
+                                    stroke-linecap="round" />
+                                <line x1="85" y1="175" x2="135" y2="175" stroke="#00d4ff" stroke-width="3"
+                                    stroke-linecap="round" />
+                            </g>
+                            <!-- bottom legs -->
+                            <line x1="85" y1="222" x2="80" y2="240" stroke="#1a4060" stroke-width="4" />
+                            <line x1="135" y1="222" x2="140" y2="240" stroke="#1a4060" stroke-width="4" />
+                            <line x1="70" y1="240" x2="155" y2="240" stroke="#1a4060" stroke-width="3" />
+                            <!-- side pipes -->
+                            <line x1="55" y1="160" x2="75" y2="160" stroke="#2a5070" stroke-width="5" />
+                            <polygon points="55,150 50,155 55,160 55,165 60,165 60,155" fill="#1a4060" />
+                            <line x1="145" y1="100" x2="165" y2="100" stroke="#2a5070" stroke-width="5" />
+                            <!-- sensor probes -->
+                            <line x1="75" y1="130" x2="60" y2="125" stroke="#00d4ff" stroke-width="2" />
+                            <circle cx="60" cy="124" r="4" fill="#00d4ff" opacity=".7" />
+                            <line x1="75" y1="150" x2="60" y2="148" stroke="#ff9900" stroke-width="2" />
+                            <circle cx="60" cy="148" r="4" fill="#ff9900" opacity=".7" />
+                            <!-- stage glow -->
+                            <rect x="70" y="45" width="85" height="200" rx="10" fill="none" stroke="#00d4ff"
+                                stroke-width="3" class="stage-glow" id="glow-s1" />
+                            <!-- label -->
+                            <text x="110" y="260" text-anchor="middle" fill="#00d4ff" font-size="9"
+                                font-family="Orbitron,monospace">①</text>
+                        </g>
+
+                        <!-- PIPE 1→2 -->
+                        <path class="pipe" d="M145,160 L220,160" marker-end="url(#arr)" />
+                        <text x="183" y="152" text-anchor="middle" fill="#3a6080" font-size="8">effluent</text>
+
+                        <!-- ═══════════════ STAGE 2: HIGH-PRESSURE HOMOGENIZER ═══════════════ -->
+                        <g id="svg-s2">
+                            <!-- box body -->
+                            <rect x="220" y="120" width="100" height="80" rx="6" fill="url(#steel)" stroke="#ff9900"
+                                stroke-width="2" />
+                            <!-- pressure gauge -->
+                            <circle cx="290" cy="110" r="18" fill="#071235" stroke="#ff9900" stroke-width="2" />
+                            <path d="M282,110 A8,8 0 0,1 298,110" stroke="#ff9900" stroke-width="2" fill="none" />
+                            <line x1="290" y1="110" x2="290" y2="102" stroke="#ff4444" stroke-width="2" />
+                            <text x="290" y="126" text-anchor="middle" fill="#ff9900" font-size="7">bar</text>
+                            <!-- piston mechanism -->
+                            <rect x="255" y="130" width="28" height="14" rx="3" fill="#1a3a5c" class="piston" />
+                            <rect x="259" y="144" width="20" height="40" rx="2" fill="#2a5070" class="piston" />
+                            <!-- liquid inside -->
+                            <rect x="226" y="160" width="88" height="35" rx="3" fill="url(#liqOr)" />
+                            <!-- inlet / outlet pipes -->
+                            <line x1="220" y1="160" x2="200" y2="160" stroke="#2a5070" stroke-width="5" />
+                            <line x1="320" y1="160" x2="345" y2="160" stroke="#2a5070" stroke-width="5" />
+                            <!-- legs -->
+                            <line x1="235" y1="200" x2="235" y2="220" stroke="#1a4060" stroke-width="4" />
+                            <line x1="305" y1="200" x2="305" y2="220" stroke="#1a4060" stroke-width="4" />
+                            <line x1="225" y1="220" x2="315" y2="220" stroke="#1a4060" stroke-width="3" />
+                            <!-- glow -->
+                            <rect x="215" y="90" width="115" height="135" rx="10" fill="none" stroke="#ff9900"
+                                stroke-width="3" class="stage-glow" id="glow-s2" />
+                            <text x="270" y="238" text-anchor="middle" fill="#ff9900" font-size="9"
+                                font-family="Orbitron,monospace">②</text>
+                        </g>
+
+                        <!-- PIPE 2→3 -->
+                        <path class="pipe-orange" d="M320,160 L400,160" marker-end="url(#arr)" />
+
+                        <!-- ═══════════════ STAGE 3: MEMBRANE FILTRATION ═══════════════ -->
+                        <g id="svg-s3">
+                            <!-- 6 horizontal membrane tubes -->
+                            <rect x="400" y="90" width="140" height="160" rx="6" fill="rgba(0,20,40,0.5)"
+                                stroke="#00ff88" stroke-width="2" />
+                            <!-- tubes -->
+                            <rect x="410" y="105" width="120" height="16" rx="8" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="410" y="128" width="120" height="16" rx="8" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="410" y="151" width="120" height="16" rx="8" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="410" y="174" width="120" height="16" rx="8" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="410" y="197" width="120" height="16" rx="8" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="410" y="220" width="120" height="16" rx="8" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <!-- liquid flow streaks in tubes -->
+                            <rect x="420" y="108" width="50" height="10" rx="5" fill="url(#liqGr)" opacity=".6" />
+                            <rect x="425" y="131" width="40" height="10" rx="5" fill="url(#liqGr)" opacity=".5" />
+                            <rect x="415" y="154" width="55" height="10" rx="5" fill="url(#liqGr)" opacity=".6" />
+                            <rect x="430" y="177" width="45" height="10" rx="5" fill="url(#liqGr)" opacity=".4" />
+                            <!-- end caps -->
+                            <rect x="400" y="90" width="12" height="160" rx="4" fill="#1a4060" stroke="#00ff88"
+                                stroke-width="1" />
+                            <rect x="530" y="90" width="12" height="160" rx="4" fill="#1a4060" stroke="#00ff88"
+                                stroke-width="1" />
+                            <!-- pipes top/bottom -->
+                            <line x1="470" y1="90" x2="470" y2="70" stroke="#2a5070" stroke-width="5" />
+                            <line x1="470" y1="250" x2="470" y2="270" stroke="#2a5070" stroke-width="5" />
+                            <line x1="400" y1="160" x2="380" y2="160" stroke="#2a5070" stroke-width="5" />
+                            <line x1="542" y1="160" x2="565" y2="160" stroke="#2a5070" stroke-width="5" />
+                            <!-- pump -->
+                            <circle cx="395" cy="160" r="14" fill="#071235" stroke="#00ff88" stroke-width="2" />
+                            <circle cx="395" cy="160" r="7" fill="#00ff88" opacity=".4" />
+                            <!-- glow -->
+                            <rect x="395" y="82" width="155" height="178" rx="10" fill="none" stroke="#00ff88"
+                                stroke-width="3" class="stage-glow" id="glow-s3" />
+                            <text x="470" y="290" text-anchor="middle" fill="#00ff88" font-size="9"
+                                font-family="Orbitron,monospace">③</text>
+                        </g>
+
+                        <!-- PIPE 3→4 -->
+                        <path class="pipe-green" d="M542,160 L620,160" marker-end="url(#arr)" />
+
+                        <!-- ═══════════════ STAGE 4: CHROMATOGRAPHY COLUMN ═══════════════ -->
+                        <g id="svg-s4">
+                            <!-- tall column -->
+                            <rect x="635" y="30" width="55" height="240" rx="8" fill="url(#steelV)" stroke="#a855f7"
+                                stroke-width="2" />
+                            <!-- column bands (separation layers) -->
+                            <rect x="640" y="50" width="45" height="20" rx="3" fill="rgba(255,68,68,0.3)" />
+                            <rect x="640" y="75" width="45" height="20" rx="3" fill="rgba(255,153,0,0.3)" />
+                            <rect x="640" y="100" width="45" height="20" rx="3" fill="rgba(255,255,0,0.2)" />
+                            <rect x="640" y="125" width="45" height="20" rx="3" fill="rgba(0,255,136,0.3)" />
+                            <rect x="640" y="150" width="45" height="20" rx="3" fill="rgba(0,212,255,0.3)" />
+                            <rect x="640" y="175" width="45" height="20" rx="3" fill="rgba(168,85,247,0.4)" />
+                            <rect x="640" y="200" width="45" height="20" rx="3" fill="rgba(0,255,136,0.5)" />
+                            <!-- liquid fill -->
+                            <rect x="642" y="140" width="41" height="125" rx="4" fill="url(#liqPu)" id="liq4-svg" />
+                            <!-- top/bottom fittings -->
+                            <rect x="628" y="25" width="69" height="12" rx="4" fill="#1a4060" stroke="#a855f7"
+                                stroke-width="1.5" />
+                            <rect x="628" y="268" width="69" height="12" rx="4" fill="#1a4060" stroke="#a855f7"
+                                stroke-width="1.5" />
+                            <!-- inlet pipe top -->
+                            <line x1="662" y1="25" x2="662" y2="10" stroke="#a855f7" stroke-width="4" />
+                            <line x1="640" y1="10" x2="685" y2="10" stroke="#a855f7" stroke-width="3" />
+                            <!-- outlet pipe bottom -->
+                            <line x1="662" y1="280" x2="662" y2="295" stroke="#a855f7" stroke-width="4" />
+                            <line x1="662" y1="295" x2="740" y2="295" stroke="#a855f7" stroke-width="3" />
+                            <line x1="740" y1="220" x2="740" y2="295" stroke="#a855f7" stroke-width="3" />
+                            <!-- feed pipe from left -->
+                            <line x1="620" y1="160" x2="635" y2="160" stroke="#2a5070" stroke-width="5" />
+                            <!-- legs -->
+                            <line x1="645" y1="280" x2="640" y2="305" stroke="#1a4060" stroke-width="4" />
+                            <line x1="680" y1="280" x2="685" y2="305" stroke="#1a4060" stroke-width="4" />
+                            <line x1="632" y1="305" width="60" y2="305" stroke="#1a4060" stroke-width="3" />
+                            <!-- glow -->
+                            <rect x="620" y="20" width="95" height="270" rx="10" fill="none" stroke="#a855f7"
+                                stroke-width="3" class="stage-glow" id="glow-s4" />
+                            <text x="662" y="320" text-anchor="middle" fill="#a855f7" font-size="9"
+                                font-family="Orbitron,monospace">④</text>
+                        </g>
+
+                        <!-- PIPE 4→5 -->
+                        <path class="pipe-purple" d="M740,220 L820,220 L820,160" marker-end="url(#arr)" />
+
+                        <!-- ═══════════════ STAGE 5: FORMULATION & ASEPTIC FILLING ═══════════════ -->
+                        <g id="svg-s5">
+                            <!-- small tank -->
+                            <rect x="820" y="90" width="65" height="120" rx="7" fill="url(#steelV)" stroke="#00ff88"
+                                stroke-width="2" />
+                            <!-- liquid inside -->
+                            <rect x="826" y="150" width="53" height="56" rx="4" fill="url(#liqGr)" id="liq5-svg" />
+                            <!-- filling nozzles -->
+                            <line x1="840" y1="210" x2="840" y2="240" stroke="#2a7060" stroke-width="4" />
+                            <line x1="853" y1="210" x2="853" y2="235" stroke="#2a7060" stroke-width="4" />
+                            <line x1="866" y1="210" x2="866" y2="242" stroke="#2a7060" stroke-width="4" />
+                            <rect x="832" y="238" width="14" height="20" rx="3" fill="#1a4060" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="847" y="233" width="14" height="20" rx="3" fill="#1a4060" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <rect x="858" y="240" width="14" height="20" rx="3" fill="#1a4060" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <!-- conveyor belt -->
+                            <rect x="825" y="265" width="120" height="8" rx="3" fill="#1a4060" stroke="#2a6080"
+                                stroke-width="1.5" />
+                            <circle cx="840" cy="269" r="5" fill="#0a3050" stroke="#2a6080" stroke-width="1.5" />
+                            <circle cx="860" cy="269" r="5" fill="#0a3050" stroke="#2a6080" stroke-width="1.5" />
+                            <circle cx="880" cy="269" r="5" fill="#0a3050" stroke="#2a6080" stroke-width="1.5" />
+                            <circle cx="900" cy="269" r="5" fill="#0a3050" stroke="#2a6080" stroke-width="1.5" />
+                            <circle cx="920" cy="269" r="5" fill="#0a3050" stroke="#2a6080" stroke-width="1.5" />
+                            <!-- control panel on side -->
+                            <rect x="893" y="100" width="45" height="90" rx="5" fill="#050f2e" stroke="#00ff88"
+                                stroke-width="1.5" />
+                            <circle cx="908" cy="120" r="5" fill="#00ff88" opacity=".8" />
+                            <circle cx="922" cy="120" r="5" fill="#ff9900" opacity=".8" />
+                            <rect x="900" y="133" width="30" height="4" rx="2" fill="#00d4ff" opacity=".6" />
+                            <rect x="900" y="143" width="20" height="4" rx="2" fill="#00d4ff" opacity=".4" />
+                            <rect x="900" y="153" width="25" height="4" rx="2" fill="#00d4ff" opacity=".5" />
+                            <rect x="900" y="163" width="15" height="4" rx="2" fill="#ff9900" opacity=".6" />
+                            <!-- legs -->
+                            <line x1="833" y1="210" x2="830" y2="230" stroke="#1a4060" stroke-width="4" />
+                            <line x1="877" y1="210" x2="880" y2="230" stroke="#1a4060" stroke-width="4" />
+                            <line x1="820" y1="230" x2="895" y2="230" stroke="#1a4060" stroke-width="3" />
+                            <!-- glow -->
+                            <rect x="815" y="82" width="140" height="200" rx="10" fill="none" stroke="#00ff88"
+                                stroke-width="3" class="stage-glow" id="glow-s5" />
+                            <text x="885" y="305" text-anchor="middle" fill="#00ff88" font-size="9"
+                                font-family="Orbitron,monospace">⑤</text>
+                            <!-- OUTPUT label -->
+                            <text x="960" y="150" text-anchor="start" fill="#00ff88" font-size="10"
+                                font-family="Orbitron,monospace">TREATED</text>
+                            <text x="960" y="163" text-anchor="start" fill="#00ff88" font-size="10"
+                                font-family="Orbitron,monospace">OUTPUT</text>
+                            <line x1="950" y1="160" x2="942" y2="160" stroke="#00ff88" stroke-width="2"
+                                marker-end="url(#arr)" />
+                        </g>
+
+                        <!-- Sensor labels floating -->
+                        <text x="50" y="120" fill="#00d4ff" font-size="8" font-family="monospace">pH</text>
+                        <text x="42" y="144" fill="#ff9900" font-size="8" font-family="monospace">Temp</text>
+
+                    </svg>
+                </div>
+
+                <!-- Active stage indicator row -->
+                <div style="display:flex;gap:6px;margin-top:12px;align-items:center;flex-wrap:wrap">
+                    <span style="font-size:.7rem;color:#3a7080">Active stage:</span>
+                    <span id="active-stage-badge"
+                        style="background:rgba(0,212,255,.15);border:1px solid var(--accent);color:var(--accent);font-family:'Orbitron',monospace;font-size:.7rem;padding:3px 12px;border-radius:10px">①
+                        Bioreactor</span>
+                </div>
+
+                <div
+                    style="margin-top:16px;padding:14px;background:rgba(0,212,255,.05);border-radius:10px;border:1px solid var(--border);font-size:.8rem;line-height:1.8;color:#a0c8e0">
+                    <strong style="color:var(--accent)">Process Description:</strong><br>
+                    Catechol-contaminated wastewater enters the <strong>stirred-tank bioreactor ①</strong> where
+                    immobilized laccase enzymes catalyse oxidative degradation at pH 7, 37°C. Effluent is forced through
+                    the <strong>high-pressure homogenizer ②</strong> (850 bar) to enhance mass transfer and cell
+                    disruption. The <strong>membrane filtration bank ③</strong> removes particulates and biomass. The
+                    <strong>chromatography column ④</strong> performs final compound separation via resin beds. The
+                    clean effluent is dispensed into sterilised vials via the <strong>aseptic filling unit ⑤</strong> on
+                    the automated conveyor.
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== CONTROL PANEL ===== -->
+        <section class="tab-section" id="tab-control">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title">🎛 Setpoint Control</div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">pH Target</span>
+                        <input type="range" class="ctrl-slider" id="sp-ph" min="5" max="9" step="0.1" value="7">
+                        <span class="ctrl-val" id="sp-ph-v">7.0</span>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Temp (°C)</span>
+                        <input type="range" class="ctrl-slider" id="sp-temp" min="25" max="55" step="0.5" value="37">
+                        <span class="ctrl-val" id="sp-temp-v">37.0</span>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">DO (mg/L)</span>
+                        <input type="range" class="ctrl-slider" id="sp-do" min="2" max="12" step="0.1" value="6.5">
+                        <span class="ctrl-val" id="sp-do-v">6.5</span>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Agitation RPM</span>
+                        <input type="range" class="ctrl-slider" id="sp-rpm" min="50" max="500" step="10" value="200">
+                        <span class="ctrl-val" id="sp-rpm-v">200</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🔌 Manual Override</div>
+                    <div class="ctrl-row" style="justify-content:flex-start;gap:16px">
+                        <span class="ctrl-label">Heating</span>
+                        <label class="toggle"><input type="checkbox" id="tg-heat" checked><span
+                                class="toggle-slider"></span></label>
+                        <span style="font-size:.75rem;color:#6a9ab0" id="tg-heat-lbl">Enabled</span>
+                    </div>
+                    <div class="ctrl-row" style="justify-content:flex-start;gap:16px">
+                        <span class="ctrl-label">Aerator</span>
+                        <label class="toggle"><input type="checkbox" id="tg-air" checked><span
+                                class="toggle-slider"></span></label>
+                        <span style="font-size:.75rem;color:#6a9ab0" id="tg-air-lbl">Enabled</span>
+                    </div>
+                    <div class="ctrl-row" style="justify-content:flex-start;gap:16px">
+                        <span class="ctrl-label">Feed Pump</span>
+                        <label class="toggle"><input type="checkbox" id="tg-feed" checked><span
+                                class="toggle-slider"></span></label>
+                        <span style="font-size:.75rem;color:#6a9ab0" id="tg-feed-lbl">Enabled</span>
+                    </div>
+                    <div class="ctrl-row" style="justify-content:flex-start;gap:16px">
+                        <span class="ctrl-label">Auto Mode</span>
+                        <label class="toggle"><input type="checkbox" id="tg-auto" checked><span
+                                class="toggle-slider"></span></label>
+                        <span style="font-size:.75rem;color:#6a9ab0" id="tg-auto-lbl">PID Active</span>
+                    </div>
+                    <div
+                        style="margin-top:16px;padding:10px;border-radius:8px;background:rgba(0,0,0,.3);font-size:.75rem;color:#3a7a8a">
+                        <span style="color:var(--accent)">⚡ PID Controller</span><br>
+                        Kp = 1.8 · Ki = 0.05 · Kd = 0.12<br>
+                        Loop frequency: 20 Hz | UART baud: 115200
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== DEGRADATION ===== -->
+        <section class="tab-section" id="tab-degradation">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title">🧪 Catechol Degradation Progress</div>
+                    <canvas id="degChart"></canvas>
+                    <div style="margin-top:10px;font-size:.8rem;color:#a0c8e0">
+                        First-order kinetic model: <span
+                            style="color:var(--accent);font-family:'Orbitron',monospace">C(t) = C₀·e^(-kt)</span><br>
+                        k = 0.042 min⁻¹ · R² = 0.997
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📊 Before vs After</div>
+                    <div class="deg-bar">
+                        <div class="deg-label">Before (NTU)</div>
+                        <div class="deg-track">
+                            <div class="deg-fill" style="width:100%;background:linear-gradient(90deg,#ff4444,#ff8800)">
+                                <span class="deg-pct">500</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="deg-bar">
+                        <div class="deg-label">After (NTU)</div>
+                        <div class="deg-track">
+                            <div class="deg-fill" id="after-bar"
+                                style="width:10%;background:linear-gradient(90deg,#00ff88,#00aa55)"><span
+                                    class="deg-pct" id="after-pct">50</span></div>
+                        </div>
+                    </div>
+                    <div class="deg-bar" style="margin-top:8px">
+                        <div class="deg-label">COD Removal</div>
+                        <div class="deg-track">
+                            <div class="deg-fill" id="cod-bar"
+                                style="width:88%;background:linear-gradient(90deg,#00d4ff,#0055ff)"><span
+                                    class="deg-pct">88%</span></div>
+                        </div>
+                    </div>
+                    <div class="deg-bar">
+                        <div class="deg-label">BOD Removal</div>
+                        <div class="deg-track">
+                            <div class="deg-fill" style="width:82%;background:linear-gradient(90deg,#a855f7,#6622cc)">
+                                <span class="deg-pct">82%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:16px;margin-top:18px;justify-content:center">
+                        <div style="text-align:center">
+                            <div class="dial">
+                                <svg viewBox="0 0 150 150">
+                                    <circle cx="75" cy="75" r="60" fill="none" stroke="rgba(255,255,255,.05)"
+                                        stroke-width="14" />
+                                    <circle cx="75" cy="75" r="60" fill="none" stroke="var(--green)" stroke-width="14"
+                                        stroke-dasharray="376.99" stroke-dashoffset="37.7" stroke-linecap="round"
+                                        transform="rotate(-90 75 75)" id="eff-ring" />
+                                </svg>
+                                <div class="dial-val"><span id="eff-val">90%</span><small>Efficiency</small></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== ANALYTICS ===== -->
+        <section class="tab-section" id="tab-analytics">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title">📈 Multi-Parameter Trend</div>
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 System Log</div>
+                    <div id="log-box"
+                        style="height:200px;overflow-y:auto;font-family:monospace;font-size:.72rem;color:#4a9a8a;padding-right:4px">
+                    </div>
+                </div>
+            </div>
+            <div class="grid-3" style="margin-top:20px">
+                <div class="card" style="text-align:center">
+                    <div class="card-title">Total Runtime</div>
+                    <div style="font-family:'Orbitron',monospace;font-size:1.8rem;color:var(--accent)" id="runtime">
+                        00:00:00</div>
+                </div>
+                <div class="card" style="text-align:center">
+                    <div class="card-title">Data Points</div>
+                    <div style="font-family:'Orbitron',monospace;font-size:1.8rem;color:var(--green)" id="data-pts">0
+                    </div>
+                </div>
+                <div class="card" style="text-align:center">
+                    <div class="card-title">Alerts Fired</div>
+                    <div style="font-family:'Orbitron',monospace;font-size:1.8rem;color:var(--orange)" id="alerts-ct">0
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        Smart IoT Bioreactor — Enzymatic Catechol Degradation System · INNOVEX 2026 · ESP32-based closed-loop
+        control<br>
+        "The demo validates real-time automated enzymatic degradation under controlled smart conditions."
+    </footer>
+
+    <script>
+        // ==============================
+        //  PARTICLE BACKGROUND
+        // ==============================
+        const pc = document.getElementById('particles');
+        const ctx = pc.getContext('2d');
+        pc.width = window.innerWidth; pc.height = window.innerHeight;
+        window.addEventListener('resize', () => { pc.width = window.innerWidth; pc.height = window.innerHeight });
+        const pts = Array.from({ length: 80 }, () => ({ x: Math.random() * pc.width, y: Math.random() * pc.height, vx: (Math.random() - .5) * .4, vy: (Math.random() - .5) * .4, r: Math.random() * 2 + .5, a: Math.random() }));
+        function drawPts() {
+            ctx.clearRect(0, 0, pc.width, pc.height);
+            pts.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0) p.x = pc.width; if (p.x > pc.width) p.x = 0;
+                if (p.y < 0) p.y = pc.height; if (p.y > pc.height) p.y = 0;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0,180,255,${p.a * .5})`; ctx.fill();
+            });
+            pts.forEach((p, i) => { pts.slice(i + 1).forEach(q => { const d = Math.hypot(p.x - q.x, p.y - q.y); if (d < 100) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.strokeStyle = `rgba(0,180,255,${.15 * (1 - d / 100)})`; ctx.lineWidth = .5; ctx.stroke() } }) });
+            requestAnimationFrame(drawPts);
+        }
+        drawPts();
+
+        // ==============================
+        //  TAB NAVIGATION
+        // ==============================
+        function showTab(id) {
+            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('visible'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('visible');
+            event.target.classList.add('active');
+        }
+
+        // ==============================
+        //  CLOCK
+        // ==============================
+        function clock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString() }
+        setInterval(clock, 1000); clock();
+
+        // ==============================
+        //  SIMULATION STATE
+        // ==============================
+        let state = { pH: 7.0, temp: 37.0, doVal: 6.5, turb: 280, runtime: 0, dataPts: 0, alertsCt: 0 };
+        let sp = { pH: 7.0, temp: 37.0, doVal: 6.5, rpm: 200 };
+        let history = { pH: [], temp: [], doVal: [], turb: [], labels: [] };
+        let degradationData = [];
+        let startTime = Date.now();
+
+        // ==============================
+        //  LIVE CHART
+        // ==============================
+        const liveCtx = document.getElementById('liveChart').getContext('2d');
+        const liveChart = new Chart(liveCtx, {
+            type: 'line',
+            data: {
+                labels: [], datasets: [
+                    { label: 'pH', data: [], borderColor: '#00d4ff', tension: .4, fill: false, yAxisID: 'y1', pointRadius: 0, borderWidth: 2 },
+                    { label: 'Temp(°C)', data: [], borderColor: '#ff9900', tension: .4, fill: false, yAxisID: 'y2', pointRadius: 0, borderWidth: 2 },
+                    { label: 'DO(mg/L)', data: [], borderColor: '#00ff88', tension: .4, fill: false, yAxisID: 'y1', pointRadius: 0, borderWidth: 2 },
+                ]
+            },
+            options: {
+                animation: false, responsive: true, maintainAspectRatio: true,
+                scales: {
+                    x: { ticks: { color: '#3a7080', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,.04)' } },
+                    y1: { position: 'left', ticks: { color: '#3a7080' }, grid: { color: 'rgba(255,255,255,.04)' }, min: 0, max: 15 },
+                    y2: { position: 'right', ticks: { color: '#ff9900' }, grid: { display: false }, min: 25, max: 55 },
+                },
+                plugins: { legend: { labels: { color: '#a0c8e0', font: { size: 10 } } } },
+            }
+        });
+
+        // ==============================
+        //  DEGRADATION CHART
+        // ==============================
+        const degCtx = document.getElementById('degChart').getContext('2d');
+        const degChart = new Chart(degCtx, {
+            type: 'line',
+            data: {
+                labels: [], datasets: [
+                    { label: 'Catechol Conc (mg/L)', data: [], borderColor: '#ff4444', backgroundColor: 'rgba(255,68,68,.1)', tension: .4, fill: true, borderWidth: 2, pointRadius: 0 },
+                    { label: 'Enzyme Activity (U/mL)', data: [], borderColor: '#00ff88', tension: .4, fill: false, borderWidth: 2, pointRadius: 0 },
+                ]
+            },
+            options: {
+                animation: false, responsive: true, maintainAspectRatio: true,
+                scales: {
+                    x: { ticks: { color: '#3a7080', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,.04)' } },
+                    y: { ticks: { color: '#3a7080' }, grid: { color: 'rgba(255,255,255,.04)' }, min: 0, max: 500 },
+                },
+                plugins: { legend: { labels: { color: '#a0c8e0', font: { size: 10 } } } },
+            }
+        });
+
+        // ==============================
+        //  TREND CHART
+        // ==============================
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        const trendChart = new Chart(trendCtx, {
+            type: 'bar',
+            data: {
+                labels: ['0 min', '10 min', '20 min', '30 min', '40 min', '50 min', '60 min'],
+                datasets: [
+                    { label: 'Turbidity(NTU)', data: [500, 420, 340, 260, 190, 130, 80], backgroundColor: 'rgba(168,85,247,.7)', yAxisID: 'y1' },
+                    { label: 'pH', data: [6.8, 6.9, 7.0, 7.0, 7.1, 7.0, 7.0], type: 'line', borderColor: '#00d4ff', tension: .4, fill: false, pointRadius: 3, yAxisID: 'y2' },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                scales: {
+                    y1: { position: 'left', ticks: { color: '#3a7080' }, grid: { color: 'rgba(255,255,255,.04)' } },
+                    y2: { position: 'right', ticks: { color: '#3a7080' }, grid: { display: false }, min: 6, max: 8 },
+                },
+                plugins: { legend: { labels: { color: '#a0c8e0', font: { size: 10 } } } },
+            }
+        });
+
+        // ==============================
+        //  LOG
+        // ==============================
+        const logBox = document.getElementById('log-box');
+        function addLog(msg, color = '#4a9a8a') {
+            const t = new Date().toLocaleTimeString();
+            logBox.innerHTML += `<div style="color:${color}">[${t}] ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+        addLog('System initialized', '#00ff88');
+        addLog('ESP32 connected via UART @ 115200 baud', '#00d4ff');
+        addLog('Sensors calibrated: pH, Temp, DO, Turbidity', '#00d4ff');
+        addLog('PID controllers active', '#00ff88');
+
+        // ==============================
+        //  ALERT SYSTEM
+        // ==============================
+        let alertTimeout = null;
+        const alertZone = document.getElementById('alert-zone');
+        function showAlert(msg, ok = false) {
+            if (alertTimeout) clearTimeout(alertTimeout);
+            alertZone.innerHTML = `<div class="alert-banner${ok ? ' ok' : ''}">⚡ ${msg}</div>`;
+            alertTimeout = setTimeout(() => alertZone.innerHTML = '', 4000);
+            if (!ok) { state.alertsCt++; document.getElementById('alerts-ct').textContent = state.alertsCt }
+        }
+
+        // ==============================
+        //  MAIN SIM TICK
+        // ==============================
+        let tick = 0; let elapsedMin = 0;
+        const C0 = 500; let catechol = C0; let enzymeAct = 45;
+        function simTick() {
+            tick++;
+            state.dataPts++;
+            elapsedMin = tick / 30; // 1 sim-min = 30 ticks
+
+            // Noise generators
+            const phSP = sp.pH, tempSP = sp.temp, doSP = sp.doVal;
+            state.pH += (phSP - state.pH) * 0.05 + (Math.random() - .5) * 0.08;
+            state.temp += (tempSP - state.temp) * 0.08 + (Math.random() - .5) * 0.12;
+            state.doVal += (doSP - state.doVal) * 0.06 + (Math.random() - .5) * 0.07;
+
+            // Turbidity drops over time (degradation)
+            const turbTarget = Math.max(30, 500 * Math.exp(-0.042 * elapsedMin));
+            state.turb += (turbTarget - state.turb) * 0.03 + (Math.random() - .5) * 2;
+
+            // Catechol degrades
+            catechol = Math.max(10, C0 * Math.exp(-0.042 * elapsedMin));
+            enzymeAct = Math.min(55, 45 + 10 * (1 - Math.exp(-0.02 * elapsedMin)));
+
+            const phr = Math.round(state.pH * 100) / 100;
+            const tr = Math.round(state.temp * 10) / 10;
+            const dr = Math.round(state.doVal * 100) / 100;
+            const tbr = Math.round(state.turb);
+
+            // Update sensor cards
+            document.getElementById('ph-val').textContent = phr.toFixed(2);
+            document.getElementById('temp-val').textContent = tr.toFixed(1);
+            document.getElementById('do-val').textContent = dr.toFixed(1);
+            document.getElementById('turb-val').textContent = tbr;
+
+            // Bars
+            document.getElementById('ph-bar').style.width = ((phr / 14) * 100) + '%';
+            document.getElementById('temp-bar').style.width = ((tr / 60) * 100) + '%';
+            document.getElementById('do-bar').style.width = ((dr / 12) * 100) + '%';
+            document.getElementById('turb-bar').style.width = (Math.min(100, (tbr / 500) * 100)) + '%';
+
+            // Trends & actuators
+            const pDev = Math.abs(phr - sp.pH);
+            document.getElementById('ph-trend').textContent = pDev < 0.3 ? '● Optimal' : '⚠ Deviating';
+            document.getElementById('ph-trend').style.color = pDev < 0.3 ? '#00ff88' : '#ff9900';
+
+            const tDev = Math.abs(tr - sp.temp);
+            document.getElementById('temp-trend').textContent = tDev < 1 ? '● Stable' : '⚠ Correcting';
+            document.getElementById('temp-trend').style.color = tDev < 1 ? '#00ff88' : '#ff9900';
+            document.getElementById('act-heat').className = 'act-indicator ' + (tr < sp.temp - 0.5 ? 'act-on' : 'act-off');
+            document.getElementById('act-heat').textContent = tr < sp.temp - 0.5 ? 'ON' : 'OFF';
+
+            document.getElementById('act-acid').className = 'act-indicator ' + (phr > sp.pH + 0.3 ? 'act-on' : 'act-off');
+            document.getElementById('act-acid').textContent = phr > sp.pH + 0.3 ? 'ON' : 'OFF';
+            document.getElementById('act-base').className = 'act-indicator ' + (phr < sp.pH - 0.3 ? 'act-on' : 'act-off');
+            document.getElementById('act-base').textContent = phr < sp.pH - 0.3 ? 'ON' : 'OFF';
+
+            document.getElementById('do-trend').textContent = dr > 4 ? '● Good' : '⚠ Low O₂';
+            document.getElementById('do-trend').style.color = dr > 4 ? '#00ff88' : '#ff4444';
+            document.getElementById('turb-trend').textContent = `● ${Math.round(100 - tbr / 500 * 100)}% degraded`;
+
+            // Alerts
+            if (tick % 60 === 0) {
+                if (pDev > 0.5) { showAlert(`pH deviation detected: ${phr.toFixed(2)} (SP: ${sp.pH.toFixed(1)}) — Dosing pump activated`); addLog(`⚠ pH alert: ${phr.toFixed(2)}. Pump activated.`, '#ff9900') }
+                else if (tDev > 2) { showAlert(`Temp deviation: ${tr.toFixed(1)}°C — Heater adjusting`); addLog(`⚠ Temp alert: ${tr.toFixed(1)}°C`, '#ff9900') }
+                else if (tick % 180 === 0) { showAlert('All parameters nominal. System stable.', true); addLog('✓ All params nominal', '#00ff88') }
+            }
+
+            // Loop ms
+            document.getElementById('loop-ms').textContent = Math.round(15 + Math.random() * 8);
+
+            // SVG process flow stage highlight
+            const stageNames = ['① Bioreactor', '② Homogenizer', '③ Filtration', '④ Chromatography', '⑤ Filling'];
+            const activeStage = 1 + Math.floor((tick / 60) % 5);
+            [1, 2, 3, 4, 5].forEach(n => {
+                const g = document.getElementById('glow-s' + n);
+                if (g) g.classList.toggle('active', n === activeStage);
+            });
+            const badge = document.getElementById('active-stage-badge');
+            if (badge) badge.textContent = stageNames[activeStage - 1];
+            // Update live s1 status & purity labels
+            const s1el = document.getElementById('s1-status');
+            if (s1el) s1el.textContent = `pH ${phr.toFixed(1)} · ${tr.toFixed(1)}°C`;
+            const purity = document.getElementById('output-purity');
+            if (purity) purity.textContent = `Purity: ${Math.min(98, 88 + (elapsedMin * 0.1)).toFixed(0)}%`;
+
+            // Charts
+            const label = new Date().toLocaleTimeString().slice(3);
+            liveChart.data.labels.push(label);
+            liveChart.data.datasets[0].data.push(phr);
+            liveChart.data.datasets[1].data.push(tr);
+            liveChart.data.datasets[2].data.push(dr);
+            if (liveChart.data.labels.length > 60) {
+                liveChart.data.labels.shift();
+                liveChart.data.datasets.forEach(d => d.data.shift());
+            }
+            liveChart.update('none');
+
+            if (tick % 10 === 0) {
+                const t10 = Math.round(elapsedMin);
+                degChart.data.labels.push(t10 + ' min');
+                degChart.data.datasets[0].data.push(catechol.toFixed(1));
+                degChart.data.datasets[1].data.push(enzymeAct.toFixed(1));
+                if (degChart.data.labels.length > 50) { degChart.data.labels.shift(); degChart.data.datasets.forEach(d => d.data.shift()) }
+                degChart.update('none');
+            }
+
+            // Degradation tab
+            const eff = Math.min(99, Math.round(100 - catechol / C0 * 100));
+            const afterNTU = Math.round(state.turb);
+            document.getElementById('after-bar').style.width = (afterNTU / 500 * 100) + '%';
+            document.getElementById('after-pct').textContent = afterNTU;
+            document.getElementById('eff-val').textContent = eff + '%';
+            const circum = 376.99;
+            document.getElementById('eff-ring').setAttribute('stroke-dashoffset', circum * (1 - eff / 100));
+            document.getElementById('eff-ring').setAttribute('stroke', eff > 80 ? '#00ff88' : eff > 60 ? '#ff9900' : '#ff4444');
+
+            // Analytics
+            state.runtime++;
+            const h = Math.floor(state.runtime / 3600).toString().padStart(2, '0');
+            const m = Math.floor((state.runtime % 3600) / 60).toString().padStart(2, '0');
+            const s = (state.runtime % 60).toString().padStart(2, '0');
+            document.getElementById('runtime').textContent = `${h}:${m}:${s}`;
+            document.getElementById('data-pts').textContent = state.dataPts;
+        }
+
+        setInterval(simTick, 1000);
+
+        // ==============================
+        //  SETPOINT SLIDERS
+        // ==============================
+        function bindSlider(id, key, decimals) {
+            const el = document.getElementById(id);
+            const vl = document.getElementById(id + '-v');
+            el.addEventListener('input', () => {
+                sp[key] = parseFloat(el.value);
+                vl.textContent = parseFloat(el.value).toFixed(decimals);
+                addLog(`Setpoint ${key} changed to ${sp[key]}`, '#00d4ff');
+            });
+        }
+        bindSlider('sp-ph', 'pH', 1);
+        bindSlider('sp-temp', 'temp', 1);
+        bindSlider('sp-do', 'doVal', 1);
+        bindSlider('sp-rpm', 'rpm', 0);
+
+        // TOGGLES
+        function bindToggle(id, lbl) {
+            const el = document.getElementById(id);
+            el.addEventListener('change', () => {
+                document.getElementById(lbl).textContent = el.checked ? 'Enabled' : 'Disabled';
+                addLog(`${id} ${el.checked ? 'enabled' : 'disabled'}`, '#a855f7');
+            });
+        }
+        bindToggle('tg-heat', 'tg-heat-lbl');
+        bindToggle('tg-air', 'tg-air-lbl');
+        bindToggle('tg-feed', 'tg-feed-lbl');
+        bindToggle('tg-auto', 'tg-auto-lbl');
+    </script>
+</body>
+
+</html>
